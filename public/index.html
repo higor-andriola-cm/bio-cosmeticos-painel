@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bio Cosméticos | Painel de Vendas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <img src="logo.png" alt="Bio Cosméticos" class="brand-logo" onerror="this.style.display='none'" />
+      <div class="brand-text">
+        <span class="brand-name">Bio Cosméticos</span>
+        <span class="brand-sub">Painel de Vendas</span>
+      </div>
+    </div>
+    <div class="filters" id="barraFiltros" hidden>
+      <label>
+        De
+        <input type="date" id="dataInicial" />
+      </label>
+      <label>
+        Até
+        <input type="date" id="dataFinal" />
+      </label>
+      <label>
+        Cidade
+        <select id="filtroCidade">
+          <option value="">Todas as cidades</option>
+        </select>
+      </label>
+      <label>
+        Cliente
+        <input type="text" id="filtroCliente" list="listaClientes" placeholder="Todos os clientes" />
+        <datalist id="listaClientes"></datalist>
+      </label>
+      <button id="gerar">Atualizar</button>
+      <button id="limparFiltros" type="button" class="secondary">Limpar filtros</button>
+      <button id="botaoVendasDia" type="button" class="secondary">Vendas do Dia</button>
+      <button id="botaoSair" type="button" class="secondary">Sair</button>
+    </div>
+  </header>
+
+  <section id="telaLogin" class="login-wrap" hidden>
+    <form id="formLogin" class="login-card">
+      <h2>Entrar</h2>
+      <p class="muted">Use o mesmo e-mail e senha da sua conta Vendr.</p>
+      <label>
+        E-mail
+        <input type="email" id="loginEmail" autocomplete="username" required />
+      </label>
+      <label>
+        Senha
+        <input type="password" id="loginSenha" autocomplete="current-password" required />
+      </label>
+      <label class="checkbox-label">
+        <input type="checkbox" id="loginLembrar" checked />
+        Lembrar meu login neste computador
+      </label>
+      <p id="loginErro" class="status error" hidden></p>
+      <button type="submit" id="botaoEntrar">Entrar</button>
+    </form>
+  </section>
+
+  <main id="conteudoPainel" hidden>
+    <p id="status" class="status"></p>
+
+    <section id="kpis" class="kpis" hidden></section>
+
+    <section id="insights" class="insights" hidden></section>
+
+    <div class="grid-2">
+      <section class="chart-card">
+        <h2>Vendas no período</h2>
+        <div class="chart-box"><canvas id="chartTendencia"></canvas></div>
+      </section>
+      <section class="chart-card">
+        <h2>Formas de pagamento</h2>
+        <div class="chart-box"><canvas id="chartPagamento"></canvas></div>
+      </section>
+    </div>
+
+    <section class="chart-card">
+      <h2>Comparação mensal</h2>
+      <div class="chart-box"><canvas id="chartMensal"></canvas></div>
+    </section>
+
+    <div class="grid-2">
+      <section class="chart-card">
+        <h2>Produtos mais vendidos <span class="muted">(clique para ver quem comprou)</span></h2>
+        <div class="chart-box"><canvas id="chartProdutos"></canvas></div>
+        <div class="table-wrap" id="tabelaProdutosWrap"></div>
+      </section>
+      <section class="chart-card">
+        <h2>Clientes que mais compraram <span class="muted">(clique para ver os produtos)</span></h2>
+        <div class="chart-box"><canvas id="chartClientes"></canvas></div>
+        <div class="table-wrap" id="tabelaClientesWrap"></div>
+      </section>
+    </div>
+
+    <section class="chart-card">
+      <h2>Todos os produtos vendidos <span class="muted">(clique num produto para ver quem comprou)</span></h2>
+      <div class="table-toolbar">
+        <input type="search" id="buscaProdutos" placeholder="Buscar produto..." />
+        <span id="contagemProdutos" class="muted"></span>
+      </div>
+      <div class="table-wrap" id="tabelaTodosProdutosWrap"></div>
+      <div class="pager" id="pagerProdutos"></div>
+    </section>
+
+    <section class="chart-card">
+      <h2>Vendas por cidade <span class="muted">(clique para ver as vendas)</span></h2>
+      <div class="chart-box"><canvas id="chartCidades"></canvas></div>
+      <div class="table-wrap" id="tabelaCidadesWrap"></div>
+    </section>
+
+    <section class="chart-card">
+      <h2>Detalhe de vendas <span class="muted">(clique num pedido para ver os itens)</span></h2>
+      <div class="table-toolbar">
+        <input type="search" id="buscaVendas" placeholder="Buscar por cliente ou produto..." />
+        <span id="contagemVendas" class="muted"></span>
+      </div>
+      <div class="table-wrap" id="tabelaVendasWrap"></div>
+      <div class="pager" id="pagerVendas"></div>
+    </section>
+
+    <section class="chart-card" id="cardInativos">
+      <h2>Clientes sem comprar há mais tempo</h2>
+      <div class="table-wrap" id="tabelaInativosWrap"></div>
+    </section>
+  </main>
+
+  <div class="modal-overlay" id="modalOverlay" hidden>
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modalTitulo"></h3>
+        <button id="modalFechar" class="modal-close" aria-label="Fechar">&times;</button>
+      </div>
+      <div id="modalExtra"></div>
+      <div class="modal-body" id="modalCorpo"></div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
