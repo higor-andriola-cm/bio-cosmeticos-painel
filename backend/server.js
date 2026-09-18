@@ -258,74 +258,8 @@ app.get('/api/receita-despesa', exigirLogin, async (req, res) => {
   }
 });
 
-// Cliente "de servico": usado pelo modulo publico /reposicao (Vendas do Dia),
-// que nao exige login de ninguem. Loga uma vez com uma conta fixa (a da
-// Marilda) e fica disponivel pra qualquer visitante consultar so os produtos
-// vendidos no dia — nao expoe faturamento, margem ou dados de clientes.
-let serviceClient = null;
-
-async function iniciarClienteDeServico() {
-  const email = (process.env.VENDR_SERVICE_EMAIL || '').trim();
-  const password = (process.env.VENDR_SERVICE_PASSWORD || '').trim();
-  if (!email || !password) {
-    console.log('VENDR_SERVICE_EMAIL/PASSWORD nao configurados: modulo /reposicao ficara indisponivel.');
-    return;
-  }
-  serviceClient = new VendrClient({ email, password });
-  try {
-    await serviceClient.ensureAuth();
-    console.log(`Cliente de servico (modulo /reposicao) OK (vendedor ${serviceClient.idVendedor}).`);
-  } catch (err) {
-    console.error('Falha ao autenticar o cliente de servico do modulo /reposicao:', err.message);
-  }
-}
-
 app.get('/reposicao', (req, res) => {
   res.sendFile(path.join(baseDir, 'public', 'reposicao.html'));
-});
-
-app.get('/api/publico/vendas-do-dia', async (req, res) => {
-  if (!serviceClient) {
-    return res.status(503).json({ error: 'Modulo de vendas do dia nao configurado.' });
-  }
-  const { data } = req.query;
-  if (!data) {
-    return res.status(400).json({ error: 'Informe a data.' });
-  }
-  try {
-    const [vendas, clientes] = await Promise.all([
-      serviceClient.request('get', '/api/v1/relatorio/detalhevenda', {
-        idVendedor: serviceClient.idVendedor,
-        dtInicial: isoInicio(data),
-        dtFinal: isoFim(data),
-        timezoneOffset: 180,
-      }),
-      serviceClient
-        .request('get', '/api/v1/relatorio/GetRelatorioCliente', {
-          idVendedor: serviceClient.idVendedor,
-          dtInicial: isoInicio(data),
-          dtFinal: isoFim(data),
-        })
-        .catch(() => []),
-    ]);
-    const cidadePorNome = new Map(
-      clientes.map((c) => [(c.nome || '').trim().toUpperCase(), c.cidade || ''])
-    );
-    // Devolve so o necessario para a tela de reposicao (sem precos de custo etc.).
-    res.json(
-      vendas.map((v) => ({
-        id_pedido: v.id_pedido,
-        data_pedido: v.data_pedido,
-        produto: v.produto,
-        quantidade: v.quantidade,
-        vlTotal: v.vlTotal,
-        cliente: v.cliente,
-        cidade: cidadePorNome.get((v.cliente || '').trim().toUpperCase()) || '',
-      }))
-    );
-  } catch (err) {
-    handleErro(res, err);
-  }
 });
 
 async function tentarLoginAutomatico() {
@@ -344,7 +278,7 @@ async function tentarLoginAutomatico() {
   }
 }
 
-Promise.all([tentarLoginAutomatico(), iniciarClienteDeServico()]).then(([c]) => {
+tentarLoginAutomatico().then((c) => {
   clientAutomaticoDesktop = c;
 
   const server = app.listen(PORT, () => {

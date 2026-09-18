@@ -15,9 +15,28 @@ function setStatus(msg, isError = false) {
   statusEl.classList.toggle('error', isError);
 }
 
+function mostrarLogin(mensagemErro) {
+  el('telaLogin').hidden = false;
+  el('conteudoReposicao').hidden = true;
+  el('botaoSair').hidden = true;
+  const erroEl = el('loginErro');
+  erroEl.textContent = mensagemErro || '';
+  erroEl.hidden = !mensagemErro;
+}
+
+function mostrarConteudo() {
+  el('telaLogin').hidden = true;
+  el('conteudoReposicao').hidden = false;
+  el('botaoSair').hidden = false;
+}
+
 async function fetchJSON(url) {
   const res = await fetch(url);
   const data = await res.json();
+  if (res.status === 401) {
+    mostrarLogin('Sessão encerrada. Faça login novamente.');
+    throw new Error('Sessão encerrada.');
+  }
   if (!res.ok) {
     const msg = (data && data.error && (data.error.message || JSON.stringify(data.error))) || 'Falha ao consultar o Vendr';
     throw new Error(msg);
@@ -92,7 +111,13 @@ async function carregarVendasDoDia(data) {
   el('resumoReposicao').textContent = '';
 
   try {
-    const vendasDia = await fetchJSON(`/api/publico/vendas-do-dia?data=${data}`);
+    const [vendasDia, clientesDia] = await Promise.all([
+      fetchJSON(`/api/vendas?inicio=${data}&fim=${data}`),
+      fetchJSON(`/api/clientes?inicio=${data}&fim=${data}`).catch(() => []),
+    ]);
+    const cidadePorNome = new Map(
+      clientesDia.map((c) => [(c.nome || '').trim().toUpperCase(), c.cidade || ''])
+    );
     const mapa = new Map();
     vendasDia.forEach((v) => {
       const nome = v.produto || 'Produto';
@@ -104,7 +129,7 @@ async function carregarVendasDoDia(data) {
       e.itens.push({
         hora: (v.data_pedido || '').slice(11, 16),
         cliente: (v.cliente || '').trim(),
-        cidade: v.cidade || 'Não informado',
+        cidade: cidadePorNome.get((v.cliente || '').trim().toUpperCase()) || 'Não informado',
         quantidade: Number(v.quantidade) || 0,
       });
     });
@@ -216,4 +241,59 @@ async function carregarVendasDoDia(data) {
 el('dataReposicao').value = hoje();
 el('botaoBuscar').addEventListener('click', () => carregarVendasDoDia(el('dataReposicao').value));
 
-carregarVendasDoDia(el('dataReposicao').value);
+el('formLogin').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const botao = el('botaoEntrar');
+  el('loginErro').hidden = true;
+  botao.disabled = true;
+  botao.textContent = 'Entrando...';
+  try {
+    const res = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: el('loginEmail').value.trim(),
+        password: el('loginSenha').value,
+        lembrar: el('loginLembrar').checked,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Não foi possível entrar.');
+    el('loginSenha').value = '';
+    mostrarConteudo();
+    carregarVendasDoDia(el('dataReposicao').value);
+  } catch (err) {
+    mostrarLogin(err.message || 'Não foi possível entrar.');
+  } finally {
+    botao.disabled = false;
+    botao.textContent = 'Entrar';
+  }
+});
+
+el('botaoSair').addEventListener('click', async () => {
+  try {
+    await fetch('/api/logout', { method: 'POST' });
+  } catch (e) {
+    // ignora falha de rede ao sair
+  }
+  el('loginEmail').value = '';
+  el('loginSenha').value = '';
+  mostrarLogin();
+});
+
+async function iniciar() {
+  try {
+    const res = await fetch('/api/session');
+    const sessao = await res.json();
+    if (sessao.autenticado) {
+      mostrarConteudo();
+      carregarVendasDoDia(el('dataReposicao').value);
+    } else {
+      mostrarLogin();
+    }
+  } catch (err) {
+    mostrarLogin('Não foi possível conectar ao servidor.');
+  }
+}
+
+iniciar();

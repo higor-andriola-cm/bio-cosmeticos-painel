@@ -18,9 +18,33 @@
         <span class="brand-sub">Vendas do Dia</span>
       </div>
     </div>
+    <div class="filters">
+      <button id="botaoSair" type="button" class="secondary" hidden>Sair</button>
+    </div>
   </header>
 
-  <main id="conteudoReposicao">
+  <section id="telaLogin" class="login-wrap" hidden>
+    <form id="formLogin" class="login-card">
+      <h2>Entrar</h2>
+      <p class="muted">Use o mesmo e-mail e senha da sua conta Vendr.</p>
+      <label>
+        E-mail
+        <input type="email" id="loginEmail" autocomplete="username" required />
+      </label>
+      <label>
+        Senha
+        <input type="password" id="loginSenha" autocomplete="current-password" required />
+      </label>
+      <label class="checkbox-label">
+        <input type="checkbox" id="loginLembrar" checked />
+        Lembrar meu login neste aparelho
+      </label>
+      <p id="loginErro" class="status error" hidden></p>
+      <button type="submit" id="botaoEntrar">Entrar</button>
+    </form>
+  </section>
+
+  <main id="conteudoReposicao" hidden>
     <section class="chart-card">
       <div class="table-toolbar">
         <label style="display:flex; flex-direction:column; gap:4px; font-size:0.8rem; color:var(--text-secondary);">
