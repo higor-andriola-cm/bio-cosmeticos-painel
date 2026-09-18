@@ -293,13 +293,36 @@ app.get('/api/publico/vendas-do-dia', async (req, res) => {
     return res.status(400).json({ error: 'Informe a data.' });
   }
   try {
-    const vendas = await serviceClient.request('get', '/api/v1/relatorio/detalhevenda', {
-      idVendedor: serviceClient.idVendedor,
-      dtInicial: isoInicio(data),
-      dtFinal: isoFim(data),
-      timezoneOffset: 180,
-    });
-    res.json(vendas);
+    const [vendas, clientes] = await Promise.all([
+      serviceClient.request('get', '/api/v1/relatorio/detalhevenda', {
+        idVendedor: serviceClient.idVendedor,
+        dtInicial: isoInicio(data),
+        dtFinal: isoFim(data),
+        timezoneOffset: 180,
+      }),
+      serviceClient
+        .request('get', '/api/v1/relatorio/GetRelatorioCliente', {
+          idVendedor: serviceClient.idVendedor,
+          dtInicial: isoInicio(data),
+          dtFinal: isoFim(data),
+        })
+        .catch(() => []),
+    ]);
+    const cidadePorNome = new Map(
+      clientes.map((c) => [(c.nome || '').trim().toUpperCase(), c.cidade || ''])
+    );
+    // Devolve so o necessario para a tela de reposicao (sem precos de custo etc.).
+    res.json(
+      vendas.map((v) => ({
+        id_pedido: v.id_pedido,
+        data_pedido: v.data_pedido,
+        produto: v.produto,
+        quantidade: v.quantidade,
+        vlTotal: v.vlTotal,
+        cliente: v.cliente,
+        cidade: cidadePorNome.get((v.cliente || '').trim().toUpperCase()) || '',
+      }))
+    );
   } catch (err) {
     handleErro(res, err);
   }

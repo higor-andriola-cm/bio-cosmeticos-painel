@@ -720,18 +720,34 @@ async function carregarVendasDoDia(data) {
   const corpo = el('modalCorpo');
   corpo.innerHTML = '<p class="muted">Carregando...</p>';
   try {
-    const vendasDia = await fetchJSON(`/api/vendas?inicio=${data}&fim=${data}`);
+    const [vendasDia, clientesDia] = await Promise.all([
+      fetchJSON(`/api/vendas?inicio=${data}&fim=${data}`),
+      fetchJSON(`/api/clientes?inicio=${data}&fim=${data}`).catch(() => []),
+    ]);
+    const cidadePorNome = mapaCidadePorCliente(clientesDia);
     const mapa = new Map();
     vendasDia.forEach((v) => {
       const nome = v.produto || 'Produto';
-      if (!mapa.has(nome)) mapa.set(nome, { produto: nome, qtd: 0, pedidos: new Set(), total: 0 });
+      if (!mapa.has(nome)) mapa.set(nome, { produto: nome, qtd: 0, pedidos: new Set(), total: 0, itens: [] });
       const e = mapa.get(nome);
       e.qtd += Number(v.quantidade) || 0;
       e.pedidos.add(v.id_pedido);
       e.total += Number(v.vlTotal) || 0;
+      e.itens.push({
+        hora: (v.data_pedido || '').slice(11, 16),
+        cliente: (v.cliente || '').trim(),
+        cidade: cidadePorNome.get((v.cliente || '').trim().toUpperCase()) || 'Não informado',
+        quantidade: Number(v.quantidade) || 0,
+      });
     });
     const linhas = [...mapa.values()]
-      .map((p) => ({ produto: p.produto, qtd: p.qtd, pedidos: p.pedidos.size, total: p.total }))
+      .map((p) => ({
+        produto: p.produto,
+        qtd: p.qtd,
+        pedidos: p.pedidos.size,
+        total: p.total,
+        itens: p.itens.sort((a, b) => b.hora.localeCompare(a.hora)),
+      }))
       .sort((a, b) => b.qtd - a.qtd);
 
     const reposicao = lerReposicaoDia(data);
@@ -813,7 +829,32 @@ async function carregarVendasDoDia(data) {
         tr.appendChild(tdCheck);
 
         const tdProduto = document.createElement('td');
-        tdProduto.textContent = linha.produto;
+        const btnProduto = document.createElement('button');
+        btnProduto.type = 'button';
+        btnProduto.className = 'link-btn';
+        btnProduto.textContent = linha.produto;
+        btnProduto.addEventListener('click', () => {
+          const proxima = tr.nextElementSibling;
+          if (proxima && proxima.classList.contains('detalhe-produto')) {
+            proxima.remove();
+            return;
+          }
+          const detalhe = document.createElement('tr');
+          detalhe.className = 'detalhe-produto';
+          const celula = document.createElement('td');
+          celula.colSpan = 5;
+          celula.appendChild(
+            criarTabela(linha.itens, [
+              { key: 'hora', label: 'Hora' },
+              { key: 'cliente', label: 'Cliente' },
+              { key: 'cidade', label: 'Cidade' },
+              { key: 'quantidade', label: 'Qtd' },
+            ])
+          );
+          detalhe.appendChild(celula);
+          tr.after(detalhe);
+        });
+        tdProduto.appendChild(btnProduto);
         tr.appendChild(tdProduto);
 
         const tdQtd = document.createElement('td');

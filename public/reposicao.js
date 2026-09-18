@@ -96,14 +96,26 @@ async function carregarVendasDoDia(data) {
     const mapa = new Map();
     vendasDia.forEach((v) => {
       const nome = v.produto || 'Produto';
-      if (!mapa.has(nome)) mapa.set(nome, { produto: nome, qtd: 0, pedidos: new Set(), total: 0 });
+      if (!mapa.has(nome)) mapa.set(nome, { produto: nome, qtd: 0, pedidos: new Set(), total: 0, itens: [] });
       const e = mapa.get(nome);
       e.qtd += Number(v.quantidade) || 0;
       e.pedidos.add(v.id_pedido);
       e.total += Number(v.vlTotal) || 0;
+      e.itens.push({
+        hora: (v.data_pedido || '').slice(11, 16),
+        cliente: (v.cliente || '').trim(),
+        cidade: v.cidade || 'Não informado',
+        quantidade: Number(v.quantidade) || 0,
+      });
     });
     const linhas = [...mapa.values()]
-      .map((p) => ({ produto: p.produto, qtd: p.qtd, pedidos: p.pedidos.size, total: p.total }))
+      .map((p) => ({
+        produto: p.produto,
+        qtd: p.qtd,
+        pedidos: p.pedidos.size,
+        total: p.total,
+        itens: p.itens.sort((a, b) => b.hora.localeCompare(a.hora)),
+      }))
       .sort((a, b) => b.qtd - a.qtd);
 
     const reposicao = lerReposicaoDia(data);
@@ -157,7 +169,37 @@ async function carregarVendasDoDia(data) {
           td.appendChild(checkbox);
         },
       },
-      { key: 'produto', label: 'Produto' },
+      {
+        label: 'Produto',
+        render: (td, row, tr) => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'link-btn';
+          btn.textContent = row.produto;
+          btn.addEventListener('click', () => {
+            const proxima = tr.nextElementSibling;
+            if (proxima && proxima.classList.contains('detalhe-produto')) {
+              proxima.remove();
+              return;
+            }
+            const detalhe = document.createElement('tr');
+            detalhe.className = 'detalhe-produto';
+            const celula = document.createElement('td');
+            celula.colSpan = 5;
+            celula.appendChild(
+              criarTabela(row.itens, [
+                { key: 'hora', label: 'Hora' },
+                { key: 'cliente', label: 'Cliente' },
+                { key: 'cidade', label: 'Cidade' },
+                { key: 'quantidade', label: 'Qtd' },
+              ])
+            );
+            detalhe.appendChild(celula);
+            tr.after(detalhe);
+          });
+          td.appendChild(btn);
+        },
+      },
       { key: 'qtd', label: 'Qtd. Vendida' },
       { key: 'pedidos', label: 'Pedidos' },
       { key: 'total', label: 'Receita', format: formatBRL },

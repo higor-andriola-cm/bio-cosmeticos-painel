@@ -535,6 +535,11 @@ tbody td {
   padding: 8px 18px 0;
 }
 
+tr.detalhe-produto > td {
+  background: var(--page-plane);
+  padding: 4px 10px 10px 32px;
+}
+
 tr.reposto td:not(:first-child) {
   opacity: 0.5;
   text-decoration: line-through;
