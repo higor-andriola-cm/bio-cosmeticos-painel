@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Vendas do Dia | Bio Cosméticos</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <img src="logo.png" alt="Bio Cosméticos" class="brand-logo" onerror="this.style.display='none'" />
+      <div class="brand-text">
+        <span class="brand-name">Bio Cosméticos</span>
+        <span class="brand-sub">Vendas do Dia</span>
+      </div>
+    </div>
+  </header>
+
+  <main id="conteudoReposicao">
+    <section class="chart-card">
+      <div class="table-toolbar">
+        <label style="display:flex; flex-direction:column; gap:4px; font-size:0.8rem; color:var(--text-secondary);">
+          Data
+          <input type="date" id="dataReposicao" />
+        </label>
+        <button id="botaoBuscar" type="button" style="align-self:flex-end; padding:9px 18px; border-radius:8px; border:none; background:var(--accent); color:white; font-weight:600; cursor:pointer; height:38px;">Buscar</button>
+      </div>
+
+      <div class="modal-actions" id="acoesReposicao" style="padding:0; margin-bottom:12px;"></div>
+
+      <p id="resumoReposicao" class="muted"></p>
+      <p id="statusReposicao" class="status"></p>
+
+      <div class="table-wrap" id="tabelaReposicaoWrap" style="max-height: none;"></div>
+    </section>
+  </main>
+
+  <script src="reposicao.js"></script>
+</body>
+</html>
