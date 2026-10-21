@@ -141,7 +141,7 @@ async function carregarVendasDoDia(data) {
         total: p.total,
         itens: p.itens.sort((a, b) => b.hora.localeCompare(a.hora)),
       }))
-      .sort((a, b) => b.qtd - a.qtd);
+      .sort((a, b) => a.produto.localeCompare(b.produto, 'pt-BR', { sensitivity: 'base' }));
 
     const reposicao = lerReposicaoDia(data);
 
